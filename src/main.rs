@@ -1,6 +1,6 @@
 use std::{env::args, fs::File, io::Read};
 
-use bytecode::parser::Parser;
+use bytecode::{parser::Parser, vm::VM};
 
 fn main() -> std::io::Result<()> {
     let args: Vec<String> = args().collect();
@@ -15,7 +15,10 @@ fn main() -> std::io::Result<()> {
         .filter(|line_vec| !line_vec.is_empty())
         .collect::<Vec<_>>();
 
-    Parser::parse_code(lines);
+    let instructions = Parser::parse_code(lines);
+
+    let mut vm = VM::new();
+    vm.run(instructions);
 
     Ok(())
 }
