@@ -25,12 +25,14 @@ impl VirtualMachine {
         while let Some(instruction) = program.get(ip) {
             match instruction {
                 Instruction::LoadValue(val) => self.operand_stack.push(*val),
-                Instruction::WriteVariable(var) => self.set_variable(var),
-                Instruction::ReadVariable(var) => self.get_variable(var),
+                Instruction::WriteVariable(var) => self.write_variable(var),
+                Instruction::ReadVariable(var) => self.read_variable(var),
                 Instruction::Add => self.add(),
                 Instruction::Sub => self.sub(),
                 Instruction::Multiply => self.multiply(),
                 Instruction::Divide => self.divide(),
+                Instruction::Print => self.print(),
+                Instruction::PrintVariable(var) => self.print_variable(var),
                 Instruction::Label => {},
                 Instruction::JumpIfEqual(label_key) => {
                     if self.jie() {
@@ -69,6 +71,20 @@ impl VirtualMachine {
         }
     }
 
+    pub fn write_variable(&mut self, key: &str) {
+        self.call_stack
+            .peek_mut()
+            .insert(key.to_string(), self.operand_stack.pop());
+    }
+
+    pub fn read_variable(&mut self, key: &str) {
+        self.operand_stack.push(
+            self.call_stack
+                .peek()
+                .get(key.to_string())
+        );
+    }
+
     pub fn add(&mut self) {
         let (rhs, lhs) = (
             self.operand_stack.pop(),
@@ -99,6 +115,18 @@ impl VirtualMachine {
             self.operand_stack.pop()
         );
         self.operand_stack.push(lhs / rhs);
+    }
+
+    pub fn print(&mut self) {
+        println!("{}", self.operand_stack.peek());
+    }
+
+    pub fn print_variable(&mut self, key: &str) {
+        let val = self.call_stack
+            .peek()
+            .get(key.to_string());
+
+        println!("{}={}", key, val);
     }
 
     pub fn jie(&mut self) -> bool {
@@ -153,20 +181,6 @@ impl VirtualMachine {
         );
 
         lhs <= rhs
-    }
-
-    pub fn set_variable(&mut self, key: &str) {
-        self.call_stack
-            .peek_mut()
-            .insert(key.to_string(), self.operand_stack.pop());
-    }
-
-    pub fn get_variable(&mut self, key: &str) {
-        self.operand_stack.push(
-            self.call_stack
-                .peek()
-                .get(key.to_string())
-        );
     }
 
     pub fn return_value(&mut self) {
