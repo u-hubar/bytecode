@@ -7,6 +7,13 @@ pub enum Instruction {
     Sub,
     Multiply,
     Divide,
+    Label,
+    JumpIfEqual(String),
+    JumpIfNotEqual(String),
+    JumpIfGreater(String),
+    JumpIfSmaller(String),
+    JumpIfGreaterEqual(String),
+    JumpIfSmallerEqual(String),
     ReturnValue,
 }
 
@@ -20,6 +27,13 @@ impl From<&[&str]> for Instruction {
             ["SUB"] => Instruction::Sub,
             ["MULTIPLY"] => Instruction::Multiply,
             ["DIVIDE"] => Instruction::Divide,
+            ["LABEL", _] => Instruction::Label,
+            ["JUMP_IF_EQ", label_key] => Instruction::JumpIfEqual(label_key.to_string()),
+            ["JUMP_IF_NQ", label_key] => Instruction::JumpIfNotEqual(label_key.to_string()),
+            ["JUMP_IF_GR", label_key] => Instruction::JumpIfGreater(label_key.to_string()),
+            ["JUMP_IF_SM", label_key] => Instruction::JumpIfSmaller(label_key.to_string()),
+            ["JUMP_IF_GREQ", label_key] => Instruction::JumpIfGreaterEqual(label_key.to_string()),
+            ["JUMP_IF_SMEQ", label_key] => Instruction::JumpIfSmallerEqual(label_key.to_string()),
             ["RETURN_VAL"] => Instruction::ReturnValue,
             invalid_instr => panic!("Invalid instruction: {:?}", invalid_instr),
         }

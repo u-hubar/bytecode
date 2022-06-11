@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct Frame<T>(HashMap<String, T>);
 
 impl<T: Copy> Frame<T> {

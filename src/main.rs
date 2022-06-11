@@ -1,24 +1,20 @@
 use std::{env::args, fs::File, io::Read};
 
-use bytecode::{parser::Parser, vm::VM};
+use bytecode::{parser::Parser, vm::VirtualMachine};
 
 fn main() -> std::io::Result<()> {
     let args: Vec<String> = args().collect();
     let mut f = File::open(&args[1])?;
 
-    let mut buf = String::new();
-    f.read_to_string(&mut buf)?;
+    let mut buffer = String::new();
+    f.read_to_string(&mut buffer)?;
 
-    let lines = buf
-        .split("\n")
-        .map(|line| line.trim().split(" ").filter(|token| !token.is_empty()).collect::<Vec<_>>())
-        .filter(|line_vec| !line_vec.is_empty())
-        .collect::<Vec<_>>();
+    let bytecode = Parser::parse_code(&buffer);
+    let mut labels = Parser::parse_labels(&bytecode);
+    let program = Parser::parse_instructions(&bytecode);
 
-    let instructions = Parser::parse_code(lines);
-
-    let mut vm = VM::new();
-    vm.run(instructions);
+    let mut vm = VirtualMachine::new();
+    vm.run(program, &mut labels);
 
     Ok(())
 }
