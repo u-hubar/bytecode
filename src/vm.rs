@@ -1,186 +1,193 @@
-use crate::{stack::Stack, frame::Frame, instruction::Instruction, labels::Labels};
+use crate::{stack::Stack, frame::Frame, instruction::Instruction};
 
 pub type Pointer = usize;
 
 pub struct VirtualMachine {
-    operand_stack: Stack<isize>,
+    ip: Pointer,
     call_stack: Stack<Frame<isize>>,
 }
 
 impl VirtualMachine {
     pub fn new() -> Self {
-        let frame = Frame::new();
+        let ip = 0;
+        let frame = Frame::new(ip);
         let mut call_stack = Stack::new();
         call_stack.push(frame);
 
         Self {
-            operand_stack: Stack::new(),
+            ip,
             call_stack,
         }
     }
 
-    pub fn run(&mut self, program: Vec<Instruction>, labels: &mut Labels) {
-        let mut ip: Pointer = 0;
-
-        while let Some(instruction) = program.get(ip) {
+    pub fn run(&mut self, program: Vec<Instruction>) {
+        while let Some(instruction) = program.get(self.ip) {
             match instruction {
-                Instruction::LoadValue(val) => self.operand_stack.push(*val),
-                Instruction::WriteVariable(var) => self.write_variable(var),
-                Instruction::ReadVariable(var) => self.read_variable(var),
+                Instruction::LoadValue(val) => self.push_value(*val),
+                Instruction::WriteVariable(var_idx) => self.write_variable(*var_idx),
+                Instruction::ReadVariable(var_idx) => self.read_variable(*var_idx),
                 Instruction::Add => self.add(),
                 Instruction::Sub => self.sub(),
                 Instruction::Multiply => self.multiply(),
                 Instruction::Divide => self.divide(),
                 Instruction::Print => self.print(),
-                Instruction::PrintVariable(var) => self.print_variable(var),
+                Instruction::PrintVariable(var_name, var_idx) => self.print_variable(var_name, *var_idx),
                 Instruction::Label => {},
-                Instruction::JumpIfEqual(label_key) => {
-                    if self.jie() {
-                        ip = *labels.get(label_key);
-                    }
-                },
-                Instruction::JumpIfNotEqual(label_key) => {
-                    if self.jine() {
-                        ip = *labels.get(label_key);
-                    }
-                },
-                Instruction::JumpIfGreater(label_key) => {
-                    if self.jilg() {
-                        ip = *labels.get(label_key);
-                    }
-                },
-                Instruction::JumpIfSmaller(label_key) => {
-                    if self.jils() {
-                        ip = *labels.get(label_key);
-                    }
-                },
-                Instruction::JumpIfGreaterEqual(label_key) => {
-                    if self.jilge() {
-                        ip = *labels.get(label_key);
-                    }
-                },
-                Instruction::JumpIfSmallerEqual(label_key) => {
-                    if self.jilse() {
-                        ip = *labels.get(label_key);
-                    }
-                },
+                Instruction::JumpIfEqual(label_ip) => self.jie(*label_ip),
+                Instruction::JumpIfNotEqual(label_ip) => self.jine(*label_ip),
+                Instruction::JumpIfGreater(label_ip) => self.jilg(*label_ip),
+                Instruction::JumpIfSmaller(label_ip) => self.jils(*label_ip),
+                Instruction::JumpIfGreaterEqual(label_ip) => self.jilge(*label_ip),
+                Instruction::JumpIfSmallerEqual(label_ip) => self.jilse(*label_ip),
                 Instruction::ReturnValue => self.return_value(),
             }
 
-            ip += 1;
+            self.ip += 1;
         }
     }
 
-    pub fn write_variable(&mut self, key: &str) {
+    pub fn push_value(&mut self, value: isize) {
         self.call_stack
             .peek_mut()
-            .insert(key.to_string(), self.operand_stack.pop());
+            .push_value(value);
     }
 
-    pub fn read_variable(&mut self, key: &str) {
-        self.operand_stack.push(
+    pub fn pop_value(&mut self) -> isize {
+        self.call_stack
+            .peek_mut()
+            .pop_value()
+    }
+
+    pub fn peek_value(&self) -> &isize {
+        self.call_stack
+            .peek()
+            .peek_value()
+    }
+
+    pub fn write_variable(&mut self, var_idx: usize) {
+        let val = self.pop_value();
+
+        self.call_stack
+            .peek_mut()
+            .set_local(var_idx, val);
+    }
+
+    pub fn read_variable(&mut self, var_idx: usize) {
+        self.push_value(
             self.call_stack
                 .peek()
-                .get(key.to_string())
+                .get_local(var_idx)
         );
     }
 
     pub fn add(&mut self) {
         let (rhs, lhs) = (
-            self.operand_stack.pop(),
-            self.operand_stack.pop()
+            self.pop_value(),
+            self.pop_value(),
         );
-        self.operand_stack.push(lhs + rhs);
+        self.push_value(lhs + rhs);
     }
 
     pub fn sub(&mut self) {
         let (rhs, lhs) = (
-            self.operand_stack.pop(),
-            self.operand_stack.pop()
+            self.pop_value(),
+            self.pop_value(),
         );
-        self.operand_stack.push(lhs - rhs);
+        self.push_value(lhs - rhs);
     }
 
     pub fn multiply(&mut self) {
         let (rhs, lhs) = (
-            self.operand_stack.pop(),
-            self.operand_stack.pop()
+            self.pop_value(),
+            self.pop_value(),
         );
-        self.operand_stack.push(lhs * rhs);
+        self.push_value(lhs * rhs);
     }
 
     pub fn divide(&mut self) {
         let (rhs, lhs) = (
-            self.operand_stack.pop(),
-            self.operand_stack.pop()
+            self.pop_value(),
+            self.pop_value(),
         );
-        self.operand_stack.push(lhs / rhs);
+        self.push_value(lhs / rhs);
     }
 
-    pub fn print(&mut self) {
-        println!("{}", self.operand_stack.peek());
+    pub fn print(&self) {
+        println!("{}", self.peek_value());
     }
 
-    pub fn print_variable(&mut self, key: &str) {
+    pub fn print_variable(&self, var_name: &str, var_idx: usize) {
         let val = self.call_stack
             .peek()
-            .get(key.to_string());
+            .get_local(var_idx);
 
-        println!("{}={}", key, val);
+        println!("{} = {}", var_name, val);
     }
 
-    pub fn jie(&mut self) -> bool {
+    pub fn jie(&mut self, label_ip: Pointer) {
         let (rhs, lhs) = (
-            self.operand_stack.pop(),
-            self.operand_stack.pop()
+            self.pop_value(),
+            self.pop_value(),
         );
 
-        lhs == rhs
+        if lhs == rhs {
+            self.ip = label_ip;
+        }
     }
 
-    pub fn jine(&mut self) -> bool {
+    pub fn jine(&mut self, label_ip: Pointer) {
         let (rhs, lhs) = (
-            self.operand_stack.pop(),
-            self.operand_stack.pop()
+            self.pop_value(),
+            self.pop_value(),
         );
 
-        lhs != rhs
+        if lhs != rhs {
+            self.ip = label_ip;
+        }
     }
 
-    pub fn jilg(&mut self) -> bool {
+    pub fn jilg(&mut self, label_ip: Pointer) {
         let (rhs, lhs) = (
-            self.operand_stack.pop(),
-            self.operand_stack.pop()
+            self.pop_value(),
+            self.pop_value(),
         );
 
-        lhs > rhs
+        if lhs > rhs {
+            self.ip = label_ip;
+        }
     }
 
-    pub fn jils(&mut self) -> bool {
+    pub fn jils(&mut self, label_ip: Pointer) {
         let (rhs, lhs) = (
-            self.operand_stack.pop(),
-            self.operand_stack.pop()
+            self.pop_value(),
+            self.pop_value(),
         );
 
-        lhs < rhs
+        if lhs < rhs {
+            self.ip = label_ip;
+        }
     }
 
-    pub fn jilge(&mut self) -> bool {
+    pub fn jilge(&mut self, label_ip: Pointer) {
         let (rhs, lhs) = (
-            self.operand_stack.pop(),
-            self.operand_stack.pop()
+            self.pop_value(),
+            self.pop_value(),
         );
 
-        lhs >= rhs
+        if lhs >= rhs {
+            self.ip = label_ip;
+        }
     }
 
-    pub fn jilse(&mut self) -> bool {
+    pub fn jilse(&mut self, label_ip: Pointer) {
         let (rhs, lhs) = (
-            self.operand_stack.pop(),
-            self.operand_stack.pop()
+            self.pop_value(),
+            self.pop_value(),
         );
 
-        lhs <= rhs
+        if lhs <= rhs {
+            self.ip = label_ip;
+        }
     }
 
     pub fn return_value(&mut self) {

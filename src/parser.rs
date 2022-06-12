@@ -1,7 +1,8 @@
-use crate::{instruction::Instruction, vm::Pointer, labels::Labels};
+use crate::{instruction::Instruction, vm::Pointer, labels::Labels, variables::Variables};
 
 pub type Bytecode<'buf> = Vec<Vec<&'buf str>>;
-pub type Label<'buf> = (&'buf str, Pointer);
+pub type Label = (String, Pointer);
+pub type Variable = String;
 
 pub struct Parser;
 
@@ -13,22 +14,37 @@ impl<'buf> Parser {
             .collect::<Vec<_>>()
     }
 
-    pub fn parse_labels(bytecode: &'buf Bytecode) -> Labels<'buf> {
+    pub fn parse_labels(bytecode: &'buf Bytecode) -> Labels {
         bytecode.iter()
             .enumerate()
             .filter_map(|(ip, code_line)| Parser::find_label(code_line, ip))
             .collect::<Labels>()
     }
 
-    pub fn parse_instructions(bytecode: &Bytecode) -> Vec<Instruction> {
+    pub fn parse_variables(bytecode: &'buf Bytecode) -> Variables {
         bytecode.iter()
-            .map(|line| Instruction::from(line.as_slice()))
+            .filter_map(|code_line| Parser::find_variable(code_line))
+            .collect::<Variables>()
+    }
+
+    pub fn parse_instructions(bytecode: &Bytecode, labels: &Labels, variables: &Variables) -> Vec<Instruction> {
+        bytecode.iter()
+            .map(|line| Instruction::from(line.as_slice(), labels, variables))
             .collect::<Vec<_>>()
     }
 
-    fn find_label(code_line: &'buf [&str], ip: Pointer) -> Option<Label<'buf>> {
+    fn find_label(code_line: &'buf [&str], ip: Pointer) -> Option<Label> {
         match code_line {
-            ["LABEL", label_name] => Some((label_name, ip)),
+            ["LABEL", label_name] => Some((label_name.to_string(), ip)),
+            _ => None,
+        }
+    }
+
+    fn find_variable(code_line: &[&str]) -> Option<Variable> {
+        match code_line {
+            ["WRITE_VAR", var_name] => {
+                Some(var_name.replace(&['\'', '"'][..], ""))
+            },
             _ => None,
         }
     }

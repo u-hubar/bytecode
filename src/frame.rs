@@ -1,18 +1,51 @@
-use std::collections::HashMap;
+use crate::{vm::Pointer, stack::Stack};
 
 #[derive(Debug)]
-pub struct Frame<T>(HashMap<String, T>);
+pub struct Frame<T> {
+    stack_offset: Pointer,
+    operand_stack: Stack<T>,
+    locals: Stack<T>,
+}
 
 impl<T: Copy> Frame<T> {
-    pub fn new() -> Frame<T> {
-        Frame(HashMap::new())
+    pub fn new(stack_offset: Pointer) -> Self {
+        Self {
+            stack_offset,
+            operand_stack: Stack::new(),
+            locals: Stack::new(),
+        }
     }
 
-    pub fn insert(&mut self, key: String, value: T) {
-        self.0.insert(key, value);
+    pub fn push_value(&mut self, value: T) {
+        self.operand_stack.push(value);
     }
 
-    pub fn get(&self, key: String) -> T {
-        *self.0.get(&key).expect("Variable doesn't exist!")
+    pub fn pop_value(&mut self) -> T {
+        self.operand_stack.pop()
+    }
+
+    pub fn peek_value(&self) -> &T {
+        self.operand_stack.peek()
+    }
+
+    pub fn set_local(&mut self, local_idx: usize, value: T) {
+        if local_idx == self.locals.len() {
+            self.locals.push(value);
+        }
+        else {
+            *self.locals.get_mut(local_idx) = value;
+        }
+    }
+
+    pub fn get_local(&self, local_idx: usize) -> T {
+        *self.locals.get(local_idx)
+    }
+
+    pub fn get_operand_stack(&self) -> &Stack<T> {
+        &self.operand_stack
+    }
+
+    pub fn get_operand_stack_mut(&mut self) -> &mut Stack<T> {
+        &mut self.operand_stack
     }
 }
