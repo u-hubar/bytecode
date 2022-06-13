@@ -1,67 +1,59 @@
-use crate::{labels::Labels, variables::Variables};
+use crate::{labels::Labels, variables::{Variables, VariableAddress}, vm::Pointer, functions::Functions};
 
 #[derive(Debug)]
 pub enum Instruction {
     LoadValue(isize),
-    WriteVariable(usize),
-    ReadVariable(usize),
+    WriteVariable(VariableAddress),
+    ReadVariable(VariableAddress),
     Add,
     Sub,
     Multiply,
     Divide,
     Print,
-    PrintVariable(String, usize),
-    Label,
-    JumpIfEqual(usize),
-    JumpIfNotEqual(usize),
-    JumpIfGreater(usize),
-    JumpIfSmaller(usize),
-    JumpIfGreaterEqual(usize),
-    JumpIfSmallerEqual(usize),
+    PrintVariable(String, VariableAddress),
+    Jump(Pointer),
+    JumpIfEqual(Pointer),
+    JumpIfNotEqual(Pointer),
+    JumpIfGreater(Pointer),
+    JumpIfSmaller(Pointer),
+    JumpIfGreaterEqual(Pointer),
+    JumpIfSmallerEqual(Pointer),
+    CallFunction(Pointer),
+    Return,
     ReturnValue,
     SendChannel,
     PopChannel,
     Spawn,
+    Ignore,
 }
 
 impl Instruction {
-    pub fn from(instr_str: &[&str], labels: &Labels, variables: &Variables) -> Self {
+    pub fn from(instr_str: &[&str], functions: &Functions, variables: &mut Variables, labels: &Labels) -> Self {
         match instr_str {
             ["LOAD_VAL", val] => Instruction::LoadValue(val.parse::<isize>().unwrap()),
-            ["WRITE_VAR", var_key] => {
-                Instruction::WriteVariable(
-                    *variables.get(
-                        var_key.replace(&['\'', '"'][..], "").as_str()
-                    )
-                )
-            },
-            ["READ_VAR", var_key] => {
-                Instruction::ReadVariable(
-                    *variables.get(
-                        var_key.replace(&['\'', '"'][..], "").as_str()
-                    )
-                )
-            },
+            ["WRITE_VAR", _] => Instruction::WriteVariable(variables.pop()),
+            ["READ_VAR", _] => Instruction::ReadVariable(variables.pop()),
             ["ADD"] => Instruction::Add,
             ["SUB"] => Instruction::Sub,
             ["MULTIPLY"] => Instruction::Multiply,
             ["DIVIDE"] => Instruction::Divide,
             ["PRINT"] => Instruction::Print,
-            ["PRINT", var_key] => {
+            ["PRINT", var_name] => {
                 Instruction::PrintVariable(
-                    var_key.replace(&['\'', '"'][..], ""),
-                    *variables.get(
-                        var_key.replace(&['\'', '"'][..], "").as_str()
-                    )
+                    var_name.replace(&['\'', '"'][..], ""),
+                    variables.pop(),
                 )
             },
-            ["LABEL", _] => Instruction::Label,
-            ["JUMP_IF_EQ", label_key] => Instruction::JumpIfEqual(*labels.get(label_key)),
-            ["JUMP_IF_NQ", label_key] => Instruction::JumpIfNotEqual(*labels.get(label_key)),
-            ["JUMP_IF_GR", label_key] => Instruction::JumpIfGreater(*labels.get(label_key)),
-            ["JUMP_IF_SM", label_key] => Instruction::JumpIfSmaller(*labels.get(label_key)),
-            ["JUMP_IF_GREQ", label_key] => Instruction::JumpIfGreaterEqual(*labels.get(label_key)),
-            ["JUMP_IF_SMEQ", label_key] => Instruction::JumpIfSmallerEqual(*labels.get(label_key)),
+            ["LABEL", _] => Instruction::Ignore,
+            ["FUNC", func_name] => Instruction::Jump(functions.get(func_name).1),
+            ["CALL", func_name] => Instruction::CallFunction(functions.get(func_name).0),
+            ["JUMP_IF_EQ", label_name] => Instruction::JumpIfEqual(*labels.get(label_name)),
+            ["JUMP_IF_NQ", label_name] => Instruction::JumpIfNotEqual(*labels.get(label_name)),
+            ["JUMP_IF_GR", label_name] => Instruction::JumpIfGreater(*labels.get(label_name)),
+            ["JUMP_IF_SM", label_name] => Instruction::JumpIfSmaller(*labels.get(label_name)),
+            ["JUMP_IF_GREQ", label_name] => Instruction::JumpIfGreaterEqual(*labels.get(label_name)),
+            ["JUMP_IF_SMEQ", label_name] => Instruction::JumpIfSmallerEqual(*labels.get(label_name)),
+            ["RETURN"] => Instruction::Return,
             ["RETURN_VAL"] => Instruction::ReturnValue,
             ["SEND_CHANNEL"] => Instruction::SendChannel,
             ["POP_CHANNEL"] => Instruction::PopChannel,

@@ -10,9 +10,10 @@ fn main() -> std::io::Result<()> {
     f.read_to_string(&mut buffer)?;
 
     let bytecode = Parser::parse_code(&buffer);
+    let functions = Parser::parse_functions(&bytecode);
+    let mut variables = Parser::parse_variables(&bytecode);
     let labels = Parser::parse_labels(&bytecode);
-    let variables = Parser::parse_variables(&bytecode);
-    let program = Parser::parse_instructions(&bytecode, &labels, &variables);
+    let program = Parser::parse_instructions(&bytecode, &functions, &mut variables, &labels);
 
     let mut vm = VirtualMachine::new();
     vm.run(program);

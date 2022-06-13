@@ -33,6 +33,7 @@ impl VirtualMachine {
 
     pub fn run(&mut self, program: Vec<Instruction>) {
         while let Some(instruction) = program.get(self.ip) {
+            println!("{:?}", instruction);
             match instruction {
                 Instruction::LoadValue(val) => self.push_value(*val),
                 Instruction::WriteVariable(var_idx) => self.write_variable(*var_idx),
@@ -43,17 +44,20 @@ impl VirtualMachine {
                 Instruction::Divide => self.divide(),
                 Instruction::Print => self.print(),
                 Instruction::PrintVariable(var_name, var_idx) => self.print_variable(var_name, *var_idx),
-                Instruction::Label => {},
+                Instruction::CallFunction(func_ip) => self.call_function(*func_ip),
+                Instruction::Jump(ip) => self.jump(*ip),
                 Instruction::JumpIfEqual(label_ip) => self.jie(*label_ip),
                 Instruction::JumpIfNotEqual(label_ip) => self.jine(*label_ip),
                 Instruction::JumpIfGreater(label_ip) => self.jilg(*label_ip),
                 Instruction::JumpIfSmaller(label_ip) => self.jils(*label_ip),
                 Instruction::JumpIfGreaterEqual(label_ip) => self.jilge(*label_ip),
                 Instruction::JumpIfSmallerEqual(label_ip) => self.jilse(*label_ip),
+                Instruction::Return => self.return_void(),
                 Instruction::ReturnValue => self.return_value(),
                 Instruction::SendChannel => self.send_channel(),
                 Instruction::PopChannel => self.pop_channel(),
                 Instruction::Spawn => {},
+                Instruction::Ignore => {},
             }
 
             self.ip += 1;
@@ -157,6 +161,10 @@ impl VirtualMachine {
         println!("{} = {}", var_name, val);
     }
 
+    pub fn jump(&mut self, ip: Pointer) {
+        self.ip = ip;
+    }
+
     pub fn jie(&mut self, label_ip: Pointer) {
         let (rhs, lhs) = (
             self.pop_value(),
@@ -223,11 +231,38 @@ impl VirtualMachine {
         }
     }
 
-    pub fn return_value(&mut self) {
-        while !self.children_threads.is_empty() {
-            let child = self.children_threads.pop();
-            child.join().expect("oops! the child thread panicked");
+    pub fn call_function(&mut self, start_ip: Pointer) {
+        self.call_stack.push(
+            Frame::new(
+                self.ip,
+            )
+        );
+
+        self.ip = start_ip;
+    }
+
+    pub fn return_void(&mut self) {
+        if self.call_stack.len() == 1 {
+            while !self.children_threads.is_empty() {
+                let child = self.children_threads.pop();
+                child.join().expect("Oops! The child thread panicked");
+            }
         }
-        self.call_stack.pop();
+        self.ip = self.call_stack.pop().ip;
+    }
+
+    pub fn return_value(&mut self) {
+        if self.call_stack.len() == 1 {
+            while !self.children_threads.is_empty() {
+                let child = self.children_threads.pop();
+                child.join().expect("Oops! The child thread panicked");
+            }
+            self.ip = self.call_stack.pop().ip;
+        }
+        else {
+            let val = self.pop_value();
+            self.ip = self.call_stack.pop().ip;
+            self.push_value(val);
+        }
     }
 }

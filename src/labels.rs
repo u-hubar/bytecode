@@ -10,23 +10,23 @@ impl Labels {
         Labels(HashMap::new())
     }
 
-    pub fn insert(&mut self, label_key: String, ip: Pointer) {
-        match self.0.insert(label_key, ip) {
+    pub fn insert(&mut self, label_name: String, ip: Pointer) {
+        match self.0.insert(label_name, ip) {
             Some(_) => panic!("Duplicated label!"),
             None => {},
         };
     }
 
-    pub fn get(&self, label_key: &str) -> &Pointer {
-        self.0.get(label_key).expect("Label doesn't exist.")
+    pub fn get(&self, label_name: &str) -> &Pointer {
+        self.0.get(label_name).expect("Label doesn't exist.")
     }
 }
 
 impl FromIterator<(String, Pointer)> for Labels {
     fn from_iter<I: IntoIterator<Item = (String, Pointer)>>(iter: I) -> Self {
         let mut labels = HashMap::new();
-        for (k, v) in iter {
-            labels.insert(k, v);
+        for (label_name, ip) in iter {
+            labels.insert(label_name, ip);
         }
         Self(labels)
     }

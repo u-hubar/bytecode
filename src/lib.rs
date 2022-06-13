@@ -1,4 +1,5 @@
 pub mod frame;
+pub mod functions;
 pub mod instruction;
 pub mod labels;
 pub mod parser;

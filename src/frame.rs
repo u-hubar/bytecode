@@ -2,15 +2,15 @@ use crate::{vm::Pointer, stack::Stack};
 
 #[derive(Debug)]
 pub struct Frame<T> {
-    stack_offset: Pointer,
+    pub ip: Pointer,
     operand_stack: Stack<T>,
     locals: Stack<T>,
 }
 
 impl<T: Copy> Frame<T> {
-    pub fn new(stack_offset: Pointer) -> Self {
+    pub fn new(ip: Pointer) -> Self {
         Self {
-            stack_offset,
+            ip,
             operand_stack: Stack::new(),
             locals: Stack::new(),
         }

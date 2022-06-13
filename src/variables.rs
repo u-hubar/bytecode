@@ -1,33 +1,39 @@
-use std::{collections::HashMap, iter::FromIterator};
+use std::collections::HashMap;
+
+use crate::{stack::Stack, vm::Pointer};
+
+pub type VariableAddress = usize;
 
 #[derive(Debug)]
-pub struct Variables(HashMap<String, usize>);
-
-impl Variables {
-    pub fn new() -> Variables {
-        Variables(HashMap::new())
-    }
-
-    pub fn insert(&mut self, var_name: String, var_idx: usize) {
-        self.0.insert(var_name, var_idx);
-    }
-
-    pub fn get(&self, var_name: &str) -> &usize {
-        self.0.get(var_name).expect("Variable doesn't exist.")
-    }
+pub struct Variables<'buf> {
+    functions_locals: HashMap<&'buf str, HashMap<&'buf str, Pointer>>,
+    variables: Stack<VariableAddress>,
 }
 
-impl FromIterator<String> for Variables {
-    fn from_iter<I: IntoIterator<Item = String>>(iter: I) -> Self {
-        let mut variables = HashMap::new();
-        let mut var_idx = 0;
-
-        for var_name in iter {
-            if !variables.contains_key(&var_name) {
-                variables.insert(var_name, var_idx);
-                var_idx += 1;
-            }
+impl<'buf> Variables<'buf> {
+    pub fn new() -> Self {
+        Self {
+            functions_locals: HashMap::new(),
+            variables: Stack::new(),
         }
-        Self(variables)
+    }
+
+    pub fn insert_local(&mut self, func_name: &'buf str, var_name: &'buf str) {
+        if !self.functions_locals.contains_key(func_name) {
+            let locals_map = HashMap::new();
+            self.functions_locals.insert(func_name, locals_map);
+        }
+
+        let func_map = self.functions_locals.get_mut(func_name).unwrap();
+
+        if !func_map.contains_key(var_name) {
+            func_map.insert(var_name, func_map.len());
+        }
+
+        self.variables.push(*func_map.get(var_name).unwrap());
+    }
+
+    pub fn pop(&mut self) -> VariableAddress {
+        self.variables.pop()
     }
 }
