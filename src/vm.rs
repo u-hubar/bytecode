@@ -1,15 +1,23 @@
+use std::{sync::mpsc::{sync_channel, Receiver, SyncSender}, thread::{JoinHandle, self}};
+
 use crate::{stack::Stack, frame::Frame, instruction::Instruction};
 
 pub type Pointer = usize;
 
+const N_THREADS: usize = 2;
+
 pub struct VirtualMachine {
     ip: Pointer,
     call_stack: Stack<Frame<isize>>,
+    tx: SyncSender<isize>,
+    rx: Receiver<isize>,
+    children_threads: Stack<JoinHandle<()>>,
 }
 
 impl VirtualMachine {
     pub fn new() -> Self {
         let ip = 0;
+        let (tx, rx) = sync_channel(1);
         let frame = Frame::new(ip);
         let mut call_stack = Stack::new();
         call_stack.push(frame);
@@ -17,6 +25,9 @@ impl VirtualMachine {
         Self {
             ip,
             call_stack,
+            tx,
+            rx,
+            children_threads: Stack::new(),
         }
     }
 
@@ -40,6 +51,9 @@ impl VirtualMachine {
                 Instruction::JumpIfGreaterEqual(label_ip) => self.jilge(*label_ip),
                 Instruction::JumpIfSmallerEqual(label_ip) => self.jilse(*label_ip),
                 Instruction::ReturnValue => self.return_value(),
+                Instruction::SendChannel => self.send_channel(),
+                Instruction::PopChannel => self.pop_channel(),
+                Instruction::Spawn => {},
             }
 
             self.ip += 1;
@@ -62,6 +76,25 @@ impl VirtualMachine {
         self.call_stack
             .peek()
             .peek_value()
+    }
+
+    pub fn send_channel(&mut self) {
+        if self.children_threads.len() == N_THREADS {
+            panic!("Threads limit reached.");
+        }
+
+        let val = self.pop_value();
+        let thread_tx = self.tx.clone();
+        let child = thread::spawn(move || {
+            thread_tx.send(val).unwrap();
+        });
+
+        self.children_threads.push(child);
+    }
+
+    pub fn pop_channel(&mut self) {
+        let val = self.rx.recv().unwrap();
+        self.push_value(val);
     }
 
     pub fn write_variable(&mut self, var_idx: usize) {
@@ -191,6 +224,10 @@ impl VirtualMachine {
     }
 
     pub fn return_value(&mut self) {
+        while !self.children_threads.is_empty() {
+            let child = self.children_threads.pop();
+            child.join().expect("oops! the child thread panicked");
+        }
         self.call_stack.pop();
     }
 }

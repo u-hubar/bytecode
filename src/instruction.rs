@@ -19,6 +19,9 @@ pub enum Instruction {
     JumpIfGreaterEqual(usize),
     JumpIfSmallerEqual(usize),
     ReturnValue,
+    SendChannel,
+    PopChannel,
+    Spawn,
 }
 
 impl Instruction {
@@ -60,6 +63,9 @@ impl Instruction {
             ["JUMP_IF_GREQ", label_key] => Instruction::JumpIfGreaterEqual(*labels.get(label_key)),
             ["JUMP_IF_SMEQ", label_key] => Instruction::JumpIfSmallerEqual(*labels.get(label_key)),
             ["RETURN_VAL"] => Instruction::ReturnValue,
+            ["SEND_CHANNEL"] => Instruction::SendChannel,
+            ["POP_CHANNEL"] => Instruction::PopChannel,
+            ["SPAWN"] => Instruction::Spawn,
             invalid_instr => panic!("Invalid instruction: {:?}", invalid_instr),
         }
     }
