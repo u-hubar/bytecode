@@ -1,20 +1,20 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
-use crate::{stack::Stack, vm::Pointer};
+use crate::vm::Pointer;
 
 pub type VariableAddress = usize;
 
 #[derive(Debug)]
 pub struct Variables<'buf> {
     functions_locals: HashMap<&'buf str, HashMap<&'buf str, Pointer>>,
-    variables: Stack<VariableAddress>,
+    variables: VecDeque<VariableAddress>,
 }
 
 impl<'buf> Variables<'buf> {
     pub fn new() -> Self {
         Self {
             functions_locals: HashMap::new(),
-            variables: Stack::new(),
+            variables: VecDeque::new(),
         }
     }
 
@@ -30,10 +30,10 @@ impl<'buf> Variables<'buf> {
             func_map.insert(var_name, func_map.len());
         }
 
-        self.variables.push(*func_map.get(var_name).unwrap());
+        self.variables.push_back(*func_map.get(var_name).unwrap());
     }
 
-    pub fn pop(&mut self) -> VariableAddress {
-        self.variables.pop()
+    pub fn pop_front(&mut self) -> VariableAddress {
+        self.variables.pop_front().expect("Variable Queue is empty.")
     }
 }

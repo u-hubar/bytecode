@@ -51,6 +51,7 @@ impl<'buf> Parser {
                 ["RETURN"] | ["RETURN_VAL"] => {function_names.pop();},
                 _ => {},
             }
+            println!("{:?} -> {:?}", line, variables);
         }
 
         variables

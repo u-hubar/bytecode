@@ -23,7 +23,6 @@ pub enum Instruction {
     ReturnValue,
     SendChannel,
     PopChannel,
-    Spawn,
     Ignore,
 }
 
@@ -31,19 +30,17 @@ impl Instruction {
     pub fn from(instr_str: &[&str], functions: &Functions, variables: &mut Variables, labels: &Labels) -> Self {
         match instr_str {
             ["LOAD_VAL", val] => Instruction::LoadValue(val.parse::<isize>().unwrap()),
-            ["WRITE_VAR", _] => Instruction::WriteVariable(variables.pop()),
-            ["READ_VAR", _] => Instruction::ReadVariable(variables.pop()),
+            ["WRITE_VAR", _] => Instruction::WriteVariable(variables.pop_front()),
+            ["READ_VAR", _] => Instruction::ReadVariable(variables.pop_front()),
             ["ADD"] => Instruction::Add,
             ["SUB"] => Instruction::Sub,
             ["MULTIPLY"] => Instruction::Multiply,
             ["DIVIDE"] => Instruction::Divide,
             ["PRINT"] => Instruction::Print,
-            ["PRINT", var_name] => {
-                Instruction::PrintVariable(
-                    var_name.replace(&['\'', '"'][..], ""),
-                    variables.pop(),
-                )
-            },
+            ["PRINT", var_name] => Instruction::PrintVariable(
+                var_name.replace(&['\'', '"'][..], ""),
+                variables.pop_front(),
+            ),
             ["LABEL", _] => Instruction::Ignore,
             ["FUNC", func_name] => Instruction::Jump(functions.get(func_name).1),
             ["CALL", func_name] => Instruction::CallFunction(functions.get(func_name).0),
@@ -57,7 +54,6 @@ impl Instruction {
             ["RETURN_VAL"] => Instruction::ReturnValue,
             ["SEND_CHANNEL"] => Instruction::SendChannel,
             ["POP_CHANNEL"] => Instruction::PopChannel,
-            ["SPAWN"] => Instruction::Spawn,
             invalid_instr => panic!("Invalid instruction: {:?}", invalid_instr),
         }
     }
