@@ -33,7 +33,6 @@ impl VirtualMachine {
 
     pub fn run(&mut self, program: Vec<Instruction>) {
         while let Some(instruction) = program.get(self.ip) {
-            println!("{:?}", instruction);
             match instruction {
                 Instruction::LoadValue(val) => self.push_value(*val),
                 Instruction::WriteVariable(var_idx) => self.write_variable(*var_idx),
