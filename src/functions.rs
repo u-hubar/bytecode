@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{vm::Pointer, errors::ParseError};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Functions(HashMap<String, (Pointer, Pointer)>);
 
 impl Functions {
@@ -30,14 +30,14 @@ mod test {
 
     #[test]
     fn new() {
-        let functions: Functions = Functions::new();
+        let functions = Functions::new();
 
         assert!(functions.0.is_empty());
     }
 
     #[test]
     fn insert() {
-        let mut functions: Functions = Functions::new();
+        let mut functions = Functions::new();
 
         functions.insert("MAIN".to_string(), (1, 5)).unwrap();
 
@@ -46,7 +46,7 @@ mod test {
 
     #[test]
     fn insert_should_return_error_when_function_duplicated() {
-        let mut functions: Functions = Functions::new();
+        let mut functions = Functions::new();
 
         functions.insert("MAIN".to_string(), (1, 5)).unwrap();
 
@@ -55,7 +55,7 @@ mod test {
 
     #[test]
     fn get() {
-        let mut functions: Functions = Functions::new();
+        let mut functions = Functions::new();
 
         functions.insert("MAIN".to_string(), (1, 5)).unwrap();
 
@@ -64,7 +64,7 @@ mod test {
 
     #[test]
     fn get_should_return_error_when_key_not_presented() {
-        let functions: Functions = Functions::new();
+        let functions = Functions::new();
 
         assert!(functions.get("MAIN").is_err());
     }

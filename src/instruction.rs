@@ -1,6 +1,6 @@
-use crate::{labels::Labels, variables::{Variables, VariableAddress}, vm::Pointer, functions::Functions};
+use crate::{labels::Labels, variables::{Variables, VariableAddress}, vm::Pointer, functions::Functions, errors::ParseError};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Instruction {
     LoadValue(isize),
     WriteVariable(VariableAddress),
@@ -25,32 +25,39 @@ pub enum Instruction {
 }
 
 impl Instruction {
-    pub fn from(instr_str: &[&str], functions: &Functions, variables: &mut Variables, labels: &Labels) -> Self {
+    pub fn from(
+        instr_str: &[&str],
+        functions: &Functions,
+        variables: &mut Variables,
+        labels: &Labels
+    ) -> Result<Self, ParseError> {
         match instr_str {
-            ["LOAD_VAL", val] => Instruction::LoadValue(val.parse::<isize>().unwrap()),
-            ["WRITE_VAR", _] => Instruction::WriteVariable(variables.queue_pop_front().unwrap()),
-            ["READ_VAR", _] => Instruction::ReadVariable(variables.queue_pop_front().unwrap()),
-            ["ADD"] => Instruction::Add,
-            ["SUB"] => Instruction::Sub,
-            ["MULTIPLY"] => Instruction::Multiply,
-            ["DIVIDE"] => Instruction::Divide,
-            ["PRINT"] => Instruction::Print,
-            ["PRINT", var_name] => Instruction::PrintVariable(
-                var_name.replace(&['\'', '"'][..], ""),
-                variables.queue_pop_front().unwrap(),
+            ["LOAD_VAL", val] => Ok(Instruction::LoadValue(val.parse::<isize>().unwrap())),
+            ["WRITE_VAR", _] => Ok(Instruction::WriteVariable(variables.queue_pop_front().unwrap())),
+            ["READ_VAR", _] => Ok(Instruction::ReadVariable(variables.queue_pop_front().unwrap())),
+            ["ADD"] => Ok(Instruction::Add),
+            ["SUB"] => Ok(Instruction::Sub),
+            ["MULTIPLY"] => Ok(Instruction::Multiply),
+            ["DIVIDE"] => Ok(Instruction::Divide),
+            ["PRINT"] => Ok(Instruction::Print),
+            ["PRINT", var_name] => Ok(
+                Instruction::PrintVariable(
+                    var_name.replace(&['\'', '"'][..], ""),
+                    variables.queue_pop_front().unwrap(),
+                )
             ),
-            ["LABEL", _] => Instruction::Ignore,
-            ["FUNC", func_name] => Instruction::Jump(functions.get(func_name).unwrap().1),
-            ["CALL", func_name] => Instruction::CallFunction(functions.get(func_name).unwrap().0),
-            ["JUMP_IF_EQ", label_name] => Instruction::JumpIfEqual(*labels.get(label_name).unwrap()),
-            ["JUMP_IF_NQ", label_name] => Instruction::JumpIfNotEqual(*labels.get(label_name).unwrap()),
-            ["JUMP_IF_GR", label_name] => Instruction::JumpIfGreater(*labels.get(label_name).unwrap()),
-            ["JUMP_IF_SM", label_name] => Instruction::JumpIfSmaller(*labels.get(label_name).unwrap()),
-            ["JUMP_IF_GREQ", label_name] => Instruction::JumpIfGreaterEqual(*labels.get(label_name).unwrap()),
-            ["JUMP_IF_SMEQ", label_name] => Instruction::JumpIfSmallerEqual(*labels.get(label_name).unwrap()),
-            ["RETURN"] => Instruction::Return,
-            ["RETURN_VAL"] => Instruction::ReturnValue,
-            invalid_instr => panic!("Invalid instruction: {:?}", invalid_instr),
+            ["LABEL", _] => Ok(Instruction::Ignore),
+            ["FUNC", func_name] => Ok(Instruction::Jump(functions.get(func_name).unwrap().1)),
+            ["CALL", func_name] => Ok(Instruction::CallFunction(functions.get(func_name).unwrap().0)),
+            ["JUMP_IF_EQ", label_name] => Ok(Instruction::JumpIfEqual(*labels.get(label_name).unwrap())),
+            ["JUMP_IF_NQ", label_name] => Ok(Instruction::JumpIfNotEqual(*labels.get(label_name).unwrap())),
+            ["JUMP_IF_GR", label_name] => Ok(Instruction::JumpIfGreater(*labels.get(label_name).unwrap())),
+            ["JUMP_IF_SM", label_name] => Ok(Instruction::JumpIfSmaller(*labels.get(label_name).unwrap())),
+            ["JUMP_IF_GREQ", label_name] => Ok(Instruction::JumpIfGreaterEqual(*labels.get(label_name).unwrap())),
+            ["JUMP_IF_SMEQ", label_name] => Ok(Instruction::JumpIfSmallerEqual(*labels.get(label_name).unwrap())),
+            ["RETURN"] => Ok(Instruction::Return),
+            ["RETURN_VAL"] => Ok(Instruction::ReturnValue),
+            _ => Err(ParseError::InvalidInstruction),
         }
     }
 }

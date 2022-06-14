@@ -4,7 +4,7 @@ use crate::{vm::Pointer, errors::ParseError};
 
 pub type VariableAddress = usize;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Variables<'buf> {
     functions_locals: HashMap<&'buf str, HashMap<&'buf str, Pointer>>,
     queue: VecDeque<VariableAddress>,
@@ -44,7 +44,7 @@ mod test {
 
     #[test]
     fn new() {
-        let variables: Variables = Variables::new();
+        let variables = Variables::new();
 
         assert!(variables.functions_locals.is_empty());
         assert!(variables.queue.is_empty());
@@ -52,7 +52,7 @@ mod test {
 
     #[test]
     fn insert_local() {
-        let mut variables: Variables = Variables::new();
+        let mut variables = Variables::new();
 
         variables.insert_local("MAIN", "x");
         variables.insert_local("FUNC", "x");
@@ -73,7 +73,7 @@ mod test {
 
     #[test]
     fn queue_pop_front() {
-        let mut variables: Variables = Variables::new();
+        let mut variables = Variables::new();
 
         variables.insert_local("MAIN", "x");
         variables.insert_local("FUNC", "x");
@@ -88,7 +88,7 @@ mod test {
 
     #[test]
     fn queue_pop_front_should_return_error_when_queue_empty() {
-        let mut variables: Variables = Variables::new();
+        let mut variables = Variables::new();
 
         assert!(variables.queue_pop_front().is_err());
     }

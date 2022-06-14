@@ -1,4 +1,6 @@
-use crate::{vm::Pointer, stack::Stack};
+use crate::{vm::Pointer, stack::Stack, errors::RuntimeError};
+
+const OPERAND_STACK_DEFAULT_CAPACITY: usize = 62;
 
 #[derive(Debug)]
 pub struct Frame<T> {
@@ -11,7 +13,7 @@ impl<T: Copy> Frame<T> {
     pub fn new(ip: Pointer) -> Self {
         Self {
             ip,
-            operand_stack: Stack::new(),
+            operand_stack: Stack::with_capacity(OPERAND_STACK_DEFAULT_CAPACITY),
             locals: Stack::new(),
         }
     }
@@ -20,11 +22,11 @@ impl<T: Copy> Frame<T> {
         self.operand_stack.push(value);
     }
 
-    pub fn pop_value(&mut self) -> T {
+    pub fn pop_value(&mut self) -> Result<T, RuntimeError> {
         self.operand_stack.pop()
     }
 
-    pub fn peek_value(&self) -> &T {
+    pub fn peek_value(&self) -> Result<&T, RuntimeError> {
         self.operand_stack.peek()
     }
 
@@ -33,15 +35,15 @@ impl<T: Copy> Frame<T> {
             self.locals.push(value);
         }
         else if local_idx < self.locals.len() {
-            *self.locals.get_mut(local_idx) = value;
+            *self.locals.get_mut(local_idx).unwrap() = value;
         }
         else {
             panic!("Invalid local variable address.")
         }
     }
 
-    pub fn get_local(&self, local_idx: usize) -> T {
-        *self.locals.get(local_idx)
+    pub fn get_local(&self, local_idx: usize) -> Result<&T, RuntimeError> {
+        self.locals.get(local_idx)
     }
 
     pub fn get_operand_stack(&self) -> &Stack<T> {
@@ -81,7 +83,7 @@ mod test {
 
         frame.push_value(10);
 
-        assert_eq!(frame.pop_value(), 10);
+        assert_eq!(frame.pop_value().unwrap(), 10);
     }
 
     #[test]
@@ -90,7 +92,7 @@ mod test {
 
         frame.push_value(10);
 
-        assert_eq!(*frame.peek_value(), 10);
+        assert_eq!(*frame.peek_value().unwrap(), 10);
     }
 
     #[test]
@@ -99,7 +101,7 @@ mod test {
 
         frame.set_local(0, 10);
 
-        assert_eq!(frame.get_local(0), 10);
+        assert_eq!(frame.get_local(0).unwrap(), &10);
     }
 
     #[test]
@@ -127,6 +129,6 @@ mod test {
 
         operand_stack.push(10);
 
-        assert_eq!(operand_stack.pop(), 10);
+        assert_eq!(operand_stack.pop().unwrap(), 10);
     }
 }

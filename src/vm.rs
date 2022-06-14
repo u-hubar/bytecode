@@ -2,6 +2,8 @@ use crate::{stack::Stack, frame::Frame, instruction::Instruction};
 
 pub type Pointer = usize;
 
+const CALL_STACK_DEFAULT_CAPACITY: usize = 20;
+
 pub struct VirtualMachine {
     ip: Pointer,
     call_stack: Stack<Frame<isize>>,
@@ -9,18 +11,16 @@ pub struct VirtualMachine {
 
 impl VirtualMachine {
     pub fn new() -> Self {
-        let ip = 0;
-        let frame = Frame::new(ip);
-        let mut call_stack = Stack::new();
-        call_stack.push(frame);
-
         Self {
-            ip,
-            call_stack,
+            ip: 0,
+            call_stack: Stack::with_capacity(CALL_STACK_DEFAULT_CAPACITY),
         }
     }
 
     pub fn run(&mut self, program: Vec<Instruction>) {
+        let main_frame = Frame::new(program.len());
+        self.call_stack.push(main_frame);
+
         while let Some(instruction) = program.get(self.ip) {
             println!("{:?}", instruction);
             match instruction {
@@ -53,19 +53,24 @@ impl VirtualMachine {
     pub fn push_value(&mut self, value: isize) {
         self.call_stack
             .peek_mut()
+            .unwrap()
             .push_value(value);
     }
 
     pub fn pop_value(&mut self) -> isize {
         self.call_stack
             .peek_mut()
+            .unwrap()
             .pop_value()
+            .unwrap()
     }
 
     pub fn peek_value(&self) -> &isize {
         self.call_stack
             .peek()
+            .unwrap()
             .peek_value()
+            .unwrap()
     }
 
     pub fn write_variable(&mut self, var_idx: usize) {
@@ -73,14 +78,17 @@ impl VirtualMachine {
 
         self.call_stack
             .peek_mut()
+            .unwrap()
             .set_local(var_idx, val);
     }
 
     pub fn read_variable(&mut self, var_idx: usize) {
         self.push_value(
-            self.call_stack
+            *self.call_stack
                 .peek()
+                .unwrap()
                 .get_local(var_idx)
+                .unwrap()
         );
     }
 
@@ -123,7 +131,9 @@ impl VirtualMachine {
     pub fn print_variable(&self, var_name: &str, var_idx: usize) {
         let val = self.call_stack
             .peek()
-            .get_local(var_idx);
+            .unwrap()
+            .get_local(var_idx)
+            .unwrap();
 
         println!("{} = {}", var_name, val);
     }
@@ -209,17 +219,12 @@ impl VirtualMachine {
     }
 
     pub fn return_void(&mut self) {
-        self.ip = self.call_stack.pop().ip;
+        self.ip = self.call_stack.pop().unwrap().ip;
     }
 
     pub fn return_value(&mut self) {
-        if self.call_stack.len() == 1 {
-            self.ip = self.call_stack.pop().ip;
-        }
-        else {
-            let val = self.pop_value();
-            self.ip = self.call_stack.pop().ip;
-            self.push_value(val);
-        }
+        let val = self.pop_value();
+        self.ip = self.call_stack.pop().unwrap().ip;
+        self.push_value(val);
     }
 }

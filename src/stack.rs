@@ -1,3 +1,5 @@
+use crate::errors::RuntimeError;
+
 #[derive(Debug)]
 pub struct Stack<T>(Vec<T>);
 
@@ -6,28 +8,32 @@ impl<T> Stack<T> {
         Stack(Vec::new())
     }
 
+    pub fn with_capacity(capacity: usize) -> Stack<T> {
+        Stack(Vec::with_capacity(capacity))
+    }
+
     pub fn push(&mut self, val: T) {
         self.0.push(val);
     }
 
-    pub fn pop(&mut self) -> T {
-        self.0.pop().expect("Stack is empty, nothing to pop.")
+    pub fn pop(&mut self) -> Result<T, RuntimeError> {
+        self.0.pop().ok_or(RuntimeError::EmptyStack)
     }
 
-    pub fn peek(&self) -> &T {
-        self.0.last().expect("Stack is empty, nothing to peek.")
+    pub fn peek(&self) -> Result<&T, RuntimeError> {
+        self.0.last().ok_or(RuntimeError::EmptyStack)
     }
 
-    pub fn peek_mut(&mut self) -> &mut T {
-        self.0.last_mut().expect("Stack is empty, nothing to peek.")
+    pub fn peek_mut(&mut self) -> Result<&mut T, RuntimeError> {
+        self.0.last_mut().ok_or(RuntimeError::EmptyStack)
     }
 
-    pub fn get(&self, idx: usize) -> &T {
-        self.0.get(idx).expect("Wrong stack index.")
+    pub fn get(&self, idx: usize) -> Result<&T, RuntimeError> {
+        self.0.get(idx).ok_or(RuntimeError::WrongStackIndex)
     }
 
-    pub fn get_mut(&mut self, idx: usize) -> &mut T {
-        self.0.get_mut(idx).expect("Wrong stack index.")
+    pub fn get_mut(&mut self, idx: usize) -> Result<&mut T, RuntimeError> {
+        self.0.get_mut(idx).ok_or(RuntimeError::WrongStackIndex)
     }
 
     pub fn len(&self) -> usize {
@@ -51,6 +57,15 @@ mod test {
     }
 
     #[test]
+    fn with_capacity() {
+        let capacity = 1000;
+        let stack: Stack<isize> = Stack::with_capacity(capacity);
+
+        assert_eq!(stack.0.capacity(), capacity);
+        assert!(stack.is_empty());
+    }
+
+    #[test]
     fn push() {
         let mut stack: Stack<isize> = Stack::new();
 
@@ -65,15 +80,14 @@ mod test {
 
         stack.push(10);
 
-        assert_eq!(stack.pop(), 10);
+        assert_eq!(stack.pop().unwrap(), 10);
     }
 
     #[test]
-    #[should_panic(expected = "Stack is empty, nothing to pop.")]
-    fn empty_pop() {
+    fn pop_should_return_error_when_stack_is_empty() {
         let mut stack: Stack<isize> = Stack::new();
 
-        stack.pop();
+        assert!(stack.pop().is_err());
     }
 
     #[test]
@@ -82,15 +96,14 @@ mod test {
 
         stack.push(10);
 
-        assert_eq!(*stack.peek(), 10)
+        assert_eq!(*stack.peek().unwrap(), 10)
     }
 
     #[test]
-    #[should_panic(expected = "Stack is empty, nothing to peek.")]
-    fn empty_peek() {
+    fn peek_should_return_error_when_stack_is_empty() {
         let stack: Stack<isize> = Stack::new();
 
-        stack.peek();
+        assert!(stack.peek().is_err());
     }
 
     #[test]
@@ -98,17 +111,16 @@ mod test {
         let mut stack: Stack<isize> = Stack::new();
 
         stack.push(10);
-        *stack.peek_mut() += 5;
+        *stack.peek_mut().unwrap() += 5;
 
-        assert_eq!(*stack.peek_mut(), 15);
+        assert_eq!(*stack.peek_mut().unwrap(), 15);
     }
 
     #[test]
-    #[should_panic(expected = "Stack is empty, nothing to peek.")]
-    fn empty_peek_mut() {
+    fn peek_mut_should_return_error_when_stack_is_empty() {
         let mut stack: Stack<isize> = Stack::new();
 
-        stack.peek_mut();
+        assert!(stack.peek_mut().is_err());
     }
 
     #[test]
@@ -119,15 +131,14 @@ mod test {
             stack.push(i);
         }
 
-        assert_eq!(*stack.get(1), 1);
+        assert_eq!(*stack.get(1).unwrap(), 1);
     }
 
     #[test]
-    #[should_panic(expected = "Wrong stack index.")]
-    fn get_wrong_index() {
+    fn get_should_return_error_when_wrong_index() {
         let stack: Stack<isize> = Stack::new();
 
-        stack.get(10);
+        assert!(stack.get(10).is_err());
     }
 
     #[test]
@@ -137,17 +148,16 @@ mod test {
         for i in 0..3 {
             stack.push(i);
         }
-        *stack.get_mut(1) = 10;
+        *stack.get_mut(1).unwrap() = 10;
 
-        assert_eq!(*stack.get_mut(1), 10);
+        assert_eq!(*stack.get_mut(1).unwrap(), 10);
     }
 
     #[test]
-    #[should_panic(expected = "Wrong stack index.")]
-    fn get_mut_wrong_index() {
+    fn get_mut_should_return_error_when_wrong_index() {
         let mut stack: Stack<isize> = Stack::new();
 
-        stack.get_mut(10);
+        assert!(stack.get_mut(10).is_err());
     }
 
     #[test]

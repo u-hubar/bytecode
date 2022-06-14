@@ -2,7 +2,7 @@ use std::{collections::HashMap, iter::FromIterator};
 
 use crate::{vm::Pointer, errors::ParseError};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Labels(HashMap<String, Pointer>);
 
 impl Labels {
@@ -39,14 +39,14 @@ mod test {
 
     #[test]
     fn new() {
-        let labels: Labels = Labels::new();
+        let labels = Labels::new();
 
         assert!(labels.0.is_empty());
     }
 
     #[test]
     fn insert() {
-        let mut labels: Labels = Labels::new();
+        let mut labels = Labels::new();
 
         labels.insert("LOOP".to_string(), 5).unwrap();
 
@@ -55,7 +55,7 @@ mod test {
 
     #[test]
     fn insert_should_return_error_when_label_duplicated() {
-        let mut labels: Labels = Labels::new();
+        let mut labels = Labels::new();
 
         labels.insert("LOOP".to_string(), 5).unwrap();
 
@@ -64,7 +64,7 @@ mod test {
 
     #[test]
     fn get() {
-        let mut labels: Labels = Labels::new();
+        let mut labels = Labels::new();
 
         labels.insert("LOOP".to_string(), 5).unwrap();
 
@@ -73,7 +73,7 @@ mod test {
 
     #[test]
     fn get_should_return_error_when_key_not_presented() {
-        let labels: Labels = Labels::new();
+        let labels = Labels::new();
 
         assert!(labels.get("LOOP").is_err());
     }
