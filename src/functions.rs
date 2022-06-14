@@ -49,6 +49,7 @@ mod test {
         let mut functions: Functions = Functions::new();
 
         functions.insert("MAIN".to_string(), (1, 5)).unwrap();
+
         assert!(functions.insert("MAIN".to_string(), (1, 5)).is_err());
     }
 

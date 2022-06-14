@@ -28,8 +28,8 @@ impl Instruction {
     pub fn from(instr_str: &[&str], functions: &Functions, variables: &mut Variables, labels: &Labels) -> Self {
         match instr_str {
             ["LOAD_VAL", val] => Instruction::LoadValue(val.parse::<isize>().unwrap()),
-            ["WRITE_VAR", _] => Instruction::WriteVariable(variables.pop_front().unwrap()),
-            ["READ_VAR", _] => Instruction::ReadVariable(variables.pop_front().unwrap()),
+            ["WRITE_VAR", _] => Instruction::WriteVariable(variables.queue_pop_front().unwrap()),
+            ["READ_VAR", _] => Instruction::ReadVariable(variables.queue_pop_front().unwrap()),
             ["ADD"] => Instruction::Add,
             ["SUB"] => Instruction::Sub,
             ["MULTIPLY"] => Instruction::Multiply,
@@ -37,7 +37,7 @@ impl Instruction {
             ["PRINT"] => Instruction::Print,
             ["PRINT", var_name] => Instruction::PrintVariable(
                 var_name.replace(&['\'', '"'][..], ""),
-                variables.pop_front().unwrap(),
+                variables.queue_pop_front().unwrap(),
             ),
             ["LABEL", _] => Instruction::Ignore,
             ["FUNC", func_name] => Instruction::Jump(functions.get(func_name).unwrap().1),
