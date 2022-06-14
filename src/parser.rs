@@ -152,6 +152,37 @@ mod test {
     }
 
     #[test]
+    fn parse_functions_should_return_error_for_duplicated_functions() {
+        let bytecode = vec![
+            vec!["FUNC", "TEST1"],
+            vec!["LOAD_VAL", "8"],
+            vec!["PRINT"],
+            vec!["RETURN"],
+            vec!["FUNC", "TEST1"],
+            vec!["LOAD_VAL", "10"],
+            vec!["PRINT"],
+            vec!["RETURN"],
+        ];
+
+        let functions = Parser::parse_functions(&bytecode);
+
+        assert!(functions.is_err());
+    }
+
+    #[test]
+    fn parse_functions_should_return_error_when_function_is_never_returned() {
+        let bytecode = vec![
+            vec!["FUNC", "TEST1"],
+            vec!["LOAD_VAL", "8"],
+            vec!["PRINT"],
+        ];
+
+        let functions = Parser::parse_functions(&bytecode);
+
+        assert!(functions.is_err());
+    }
+
+    #[test]
     fn parse_variables() {
         let bytecode = vec![
             vec!["LOAD_VAL", "5"],
@@ -183,22 +214,12 @@ mod test {
     #[test]
     fn parse_variables_should_return_error_when_return_from_non_existent_function() {
         let bytecode = vec![
-            vec!["LOAD_VAL", "5"],
-            vec!["WRITE_VAR", "'x'"],
-            vec!["FUNC", "TEST1"],
-            vec!["LOAD_VAL", "8"],
-            vec!["WRITE_VAR", "'x'"],
             vec!["RETURN"],
-            vec!["LOAD_VAL", "10"],
-            vec!["WRITE_VAR", "'z'"],
-            vec!["RETURN"],
-            vec!["READ_VAR", "'x'"],
-            vec!["WRITE_VAR", "'y'"]
         ];
 
-        let actual_variables = Parser::parse_variables(&bytecode);
+        let variables = Parser::parse_variables(&bytecode);
 
-        assert!(actual_variables.is_err());
+        assert!(variables.is_err());
     }
 
     #[test]
@@ -222,6 +243,17 @@ mod test {
         expected_labels.insert("LOOP".to_string(), 2).unwrap();
 
         assert_eq!(actual_labels, expected_labels);
+    }
+
+    #[test]
+    #[should_panic(expected = "Label duplicate found during parsing.")]
+    fn parse_labels_should_panic_for_duplicated_labels() {
+        let bytecode = vec![
+            vec!["LABEL", "LOOP"],
+            vec!["LABEL", "LOOP"],
+        ];
+
+        Parser::parse_labels(&bytecode);
     }
 
     #[test]
@@ -264,6 +296,26 @@ mod test {
         ];
 
         assert_eq!(actual_instructions, expected_instructions);
+    }
+
+    #[test]
+    fn parse_instructions_should_return_error_for_non_existent_instruction() {
+        let bytecode = vec![
+            vec!["TEST", "INSTRUCTION"],
+        ];
+
+        let functions = Parser::parse_functions(&bytecode).unwrap();
+        let mut variables = Parser::parse_variables(&bytecode).unwrap();
+        let labels = Parser::parse_labels(&bytecode);
+
+        let instructions = Parser::parse_instructions(
+            &bytecode,
+            &functions,
+            &mut variables,
+            &labels
+        );
+
+        assert!(instructions.is_err());
     }
 }
 
