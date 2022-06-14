@@ -28,7 +28,9 @@ impl<'buf> Parser {
                         ip += 1;
                     }
 
-                    functions.insert(func_name.to_string(), (func_start_ip, ip));
+                    functions
+                        .insert(func_name.to_string(), (func_start_ip, ip))
+                        .unwrap();
                 },
                 _ => ip += 1,
             }

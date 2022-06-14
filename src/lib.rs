@@ -1,3 +1,4 @@
+pub mod errors;
 pub mod frame;
 pub mod functions;
 pub mod instruction;

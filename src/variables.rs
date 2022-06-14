@@ -1,6 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 
-use crate::vm::Pointer;
+use crate::{vm::Pointer, errors::ParseError};
 
 pub type VariableAddress = usize;
 
@@ -33,7 +33,7 @@ impl<'buf> Variables<'buf> {
         self.variables.push_back(*func_map.get(var_name).unwrap());
     }
 
-    pub fn pop_front(&mut self) -> VariableAddress {
-        self.variables.pop_front().expect("Variable Queue is empty.")
+    pub fn pop_front(&mut self) -> Result<VariableAddress, ParseError> {
+        self.variables.pop_front().ok_or(ParseError::VariableNotFound)
     }
 }

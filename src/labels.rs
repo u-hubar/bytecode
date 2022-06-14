@@ -1,6 +1,6 @@
 use std::{collections::HashMap, iter::FromIterator};
 
-use crate::vm::Pointer;
+use crate::{vm::Pointer, errors::ParseError};
 
 #[derive(Debug)]
 pub struct Labels(HashMap<String, Pointer>);
@@ -10,15 +10,15 @@ impl Labels {
         Labels(HashMap::new())
     }
 
-    pub fn insert(&mut self, label_name: String, ip: Pointer) {
+    pub fn insert(&mut self, label_name: String, ip: Pointer) -> Result<(), ParseError> {
         match self.0.insert(label_name, ip) {
-            Some(_) => panic!("Duplicated label!"),
-            None => {},
-        };
+            Some(_) => Err(ParseError::DuplicatedLabel),
+            None => Ok(()),
+        }
     }
 
-    pub fn get(&self, label_name: &str) -> &Pointer {
-        self.0.get(label_name).expect("Label doesn't exist.")
+    pub fn get(&self, label_name: &str) -> Result<&Pointer, ParseError> {
+        self.0.get(label_name).ok_or(ParseError::LabelNotFound)
     }
 }
 
