@@ -21,8 +21,6 @@ pub enum Instruction {
     CallFunction(Pointer),
     Return,
     ReturnValue,
-    SendChannel,
-    PopChannel,
     Ignore,
 }
 
@@ -52,8 +50,6 @@ impl Instruction {
             ["JUMP_IF_SMEQ", label_name] => Instruction::JumpIfSmallerEqual(*labels.get(label_name).unwrap()),
             ["RETURN"] => Instruction::Return,
             ["RETURN_VAL"] => Instruction::ReturnValue,
-            ["SEND_CHANNEL"] => Instruction::SendChannel,
-            ["POP_CHANNEL"] => Instruction::PopChannel,
             invalid_instr => panic!("Invalid instruction: {:?}", invalid_instr),
         }
     }
