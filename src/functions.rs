@@ -21,3 +21,33 @@ impl Functions {
         self.0.get(func_name).expect("Function doesn't exist.")
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn new() {
+        let functions: Functions = Functions::new();
+
+        assert!(functions.0.is_empty());
+    }
+
+    #[test]
+    fn insert() {
+        let mut functions: Functions = Functions::new();
+
+        functions.insert("MAIN".to_string(), (1, 5));
+
+        assert!(functions.0.contains_key("MAIN"));
+    }
+
+    #[test]
+    fn get() {
+        let mut functions: Functions = Functions::new();
+
+        functions.insert("MAIN".to_string(), (1, 5));
+
+        assert_eq!(functions.get("MAIN"), &(1, 5));
+    }
+}
