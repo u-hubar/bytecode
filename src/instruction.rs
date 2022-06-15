@@ -57,7 +57,7 @@ impl Instruction {
             ["JUMP_IF_SMEQ", label_name] => Ok(Instruction::JumpIfSmallerEqual(*labels.get(label_name).unwrap())),
             ["RETURN"] => Ok(Instruction::Return),
             ["RETURN_VAL"] => Ok(Instruction::ReturnValue),
-            _ => Err(ParseError::InvalidInstruction),
+            invalid_instr => Err(ParseError::InvalidInstruction(invalid_instr.join(" "))),
         }
     }
 }
