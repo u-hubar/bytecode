@@ -10,15 +10,15 @@ impl Labels {
         Labels(HashMap::new())
     }
 
-    pub fn insert(&mut self, label_name: String, ip: Pointer) -> Result<(), ParseError> {
-        match self.0.insert(label_name, ip) {
-            Some(_) => Err(ParseError::DuplicatedLabel),
+    pub fn insert(&mut self, label_name: &str, ip: Pointer) -> Result<(), ParseError> {
+        match self.0.insert(label_name.to_string(), ip) {
+            Some(_) => Err(ParseError::DuplicatedLabel(label_name.to_string())),
             None => Ok(()),
         }
     }
 
     pub fn get(&self, label_name: &str) -> Result<&Pointer, ParseError> {
-        self.0.get(label_name).ok_or(ParseError::LabelNotFound)
+        self.0.get(label_name).ok_or(ParseError::LabelNotFound(label_name.to_string()))
     }
 }
 
@@ -26,7 +26,7 @@ impl FromIterator<(String, Pointer)> for Labels {
     fn from_iter<I: IntoIterator<Item = (String, Pointer)>>(iter: I) -> Self {
         let mut labels = Labels::new();
         for (label_name, ip) in iter {
-            labels.insert(label_name, ip).unwrap();
+            labels.insert(&label_name, ip).unwrap();
         }
 
         labels
@@ -48,7 +48,7 @@ mod test {
     fn insert() {
         let mut labels = Labels::new();
 
-        labels.insert("LOOP".to_string(), 5).unwrap();
+        labels.insert("LOOP", 5).unwrap();
 
         assert!(labels.0.contains_key("LOOP"));
     }
@@ -57,16 +57,16 @@ mod test {
     fn insert_should_return_error_when_label_duplicated() {
         let mut labels = Labels::new();
 
-        labels.insert("LOOP".to_string(), 5).unwrap();
+        labels.insert("LOOP", 5).unwrap();
 
-        assert!(labels.insert("LOOP".to_string(), 5).is_err());
+        assert!(labels.insert("LOOP", 5).is_err());
     }
 
     #[test]
     fn get() {
         let mut labels = Labels::new();
 
-        labels.insert("LOOP".to_string(), 5).unwrap();
+        labels.insert("LOOP", 5).unwrap();
 
         assert_eq!(labels.get("LOOP").unwrap(), &5);
     }
@@ -95,7 +95,7 @@ mod test {
     }
 
     #[test]
-    #[should_panic(expected = "Label duplicate found during parsing.")]
+    #[should_panic(expected = "Label 'LOOP1' duplicate found during parsing.")]
     fn from_iter_should_panic_while_parsing_duplicated_labels() {
         let labels_vec: Vec<&str> = vec!["LOOP1", "LOOP1"];
 

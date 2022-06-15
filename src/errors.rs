@@ -1,14 +1,14 @@
 use std::{error::Error, fmt::{Display, Formatter, Debug}, fmt::Result as FmtResult};
 
 pub enum ParseError {
-    DuplicatedFunction,
-    FunctionNotFound,
+    DuplicatedFunction(String),
+    FunctionNotFound(String),
     VariableNotFound,
-    DuplicatedLabel,
-    LabelNotFound,
-    FunctionNeverReturned,
-    ReturnOutsideFunction,
-    InvalidInstruction,
+    DuplicatedLabel(String),
+    LabelNotFound(String),
+    FunctionNeverReturned(String),
+    ReturnOutsideFunction(String),
+    InvalidInstruction(String),
 }
 
 pub enum RuntimeError {
@@ -17,16 +17,30 @@ pub enum RuntimeError {
 }
 
 impl ParseError {
-    fn message(&self) -> &str {
+    fn message(&self) -> String {
         match self {
-            Self::DuplicatedFunction => "Function duplicate found during parsing",
-            Self::FunctionNotFound => "Function has never been declared.",
-            Self::VariableNotFound => "Variable has never been written.",
-            Self::DuplicatedLabel => "Label duplicate found during parsing.",
-            Self::LabelNotFound => "Jump to non-existant label found.",
-            Self::ReturnOutsideFunction => "Return can only be used within a function.",
-            Self::FunctionNeverReturned => "Missing return statement in the function.",
-            Self::InvalidInstruction => "Unknown instruction.",
+            Self::DuplicatedFunction(func_name) => format!(
+                "Function '{}' duplicate found during parsing", func_name
+            ),
+            Self::FunctionNotFound(func_name) => format!(
+                "Function '{}' has never been declared.", func_name
+            ),
+            Self::VariableNotFound => "Variable has never been initialized.".to_string(),
+            Self::DuplicatedLabel(label_name) => format!(
+                "Label '{}' duplicate found during parsing.", label_name
+            ),
+            Self::LabelNotFound(label_name) => format!(
+                "Jump to non-existant label '{}' found.", label_name
+            ),
+            Self::ReturnOutsideFunction(instr_num) => format!(
+                "Return can only be used within a function (Line #{}).", instr_num
+            ),
+            Self::FunctionNeverReturned(func_name) => format!(
+                "Missing return statement in the function '{}'.", func_name
+            ),
+            Self::InvalidInstruction(instr) => format!(
+                "Unknown instruction '{}'.", instr
+            ),
         }
     }
 }

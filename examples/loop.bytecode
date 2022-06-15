@@ -1,0 +1,21 @@
+LOAD_VAL 1
+WRITE_VAR 'x'
+
+READ_VAR 'x'
+LOAD_VAL 10
+JUMP_IF_GREQ END_LOOP
+
+LABEL LOOP
+    READ_VAR 'x'
+    LOAD_VAL 1
+    ADD
+
+    WRITE_VAR 'x'
+    PRINT 'x'
+
+    READ_VAR 'x'
+    LOAD_VAL 10
+
+    JUMP_IF_SM LOOP
+    
+LABEL END_LOOP

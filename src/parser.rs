@@ -25,17 +25,17 @@ impl<'buf> Parser {
                     let func_start_ip = ip;
                     let mut actual_code_line = bytecode
                         .get(ip)
-                        .ok_or(ParseError::FunctionNeverReturned)?;
+                        .ok_or(ParseError::FunctionNeverReturned(func_name.to_string()))?;
 
                     while actual_code_line != &["RETURN"] && actual_code_line != &["RETURN_VAL"] {
                         ip += 1;
                         actual_code_line = bytecode
                             .get(ip)
-                            .ok_or(ParseError::FunctionNeverReturned)?;
+                            .ok_or(ParseError::FunctionNeverReturned(func_name.to_string()))?;
                     }
 
                     functions
-                        .insert(func_name.to_string(), (func_start_ip, ip))?;
+                        .insert(func_name, (func_start_ip, ip))?;
                 },
                 _ => ip += 1,
             }
@@ -49,7 +49,7 @@ impl<'buf> Parser {
         let mut function_names = Stack::new();
         function_names.push("MAIN");
 
-        for line in bytecode {
+        for (i, line) in bytecode.iter().enumerate() {
             match line.as_slice() {
                 ["WRITE_VAR", var_name] |
                 ["READ_VAR", var_name] |
@@ -64,7 +64,7 @@ impl<'buf> Parser {
                 ["FUNC", func_name] => function_names.push(func_name),
                 ["RETURN"] | ["RETURN_VAL"] => {
                     if function_names.len() == 1 {
-                        return Err(ParseError::ReturnOutsideFunction)
+                        return Err(ParseError::ReturnOutsideFunction(i.to_string()))
                     }
 
                     function_names
@@ -145,8 +145,8 @@ mod test {
         let actual_functions = Parser::parse_functions(&bytecode).unwrap();
 
         let mut expected_functions = Functions::new();
-        expected_functions.insert("TEST1".to_string(), (3, 6)).unwrap();
-        expected_functions.insert("TEST2".to_string(), (7, 10)).unwrap();
+        expected_functions.insert("TEST1", (3, 6)).unwrap();
+        expected_functions.insert("TEST2", (7, 10)).unwrap();
 
         assert_eq!(actual_functions, expected_functions);
     }
@@ -240,13 +240,13 @@ mod test {
         let actual_labels = Parser::parse_labels(&bytecode);
 
         let mut expected_labels = Labels::new();
-        expected_labels.insert("LOOP".to_string(), 2).unwrap();
+        expected_labels.insert("LOOP", 2).unwrap();
 
         assert_eq!(actual_labels, expected_labels);
     }
 
     #[test]
-    #[should_panic(expected = "Label duplicate found during parsing.")]
+    #[should_panic(expected = "Label 'LOOP' duplicate found during parsing.")]
     fn parse_labels_should_panic_for_duplicated_labels() {
         let bytecode = vec![
             vec!["LABEL", "LOOP"],

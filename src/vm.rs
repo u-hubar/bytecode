@@ -23,7 +23,6 @@ impl VirtualMachine {
         self.call_stack.push(main_frame);
 
         while let Some(instruction) = program.get(self.ip) {
-            println!("{:?}", instruction);
             match instruction {
                 Instruction::LoadValue(val) => self.push_value(*val),
                 Instruction::WriteVariable(var_idx) => self.write_variable(*var_idx),
