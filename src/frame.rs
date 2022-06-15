@@ -2,7 +2,7 @@ use crate::{vm::Pointer, stack::Stack, errors::RuntimeError};
 
 const OPERAND_STACK_DEFAULT_CAPACITY: usize = 62;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Frame<T> {
     pub ip: Pointer,
     operand_stack: Stack<T>,

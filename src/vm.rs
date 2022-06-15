@@ -4,6 +4,7 @@ pub type Pointer = usize;
 
 const CALL_STACK_DEFAULT_CAPACITY: usize = 20;
 
+#[derive(Debug, PartialEq)]
 pub struct VirtualMachine {
     ip: Pointer,
     call_stack: Stack<Frame<isize>>,
@@ -226,5 +227,319 @@ impl VirtualMachine {
         let val = self.pop_value();
         self.ip = self.call_stack.pop().unwrap().ip;
         self.push_value(val);
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn new() {
+        let vm = VirtualMachine::new();
+
+        assert_eq!(vm.ip, 0);
+        assert!(vm.call_stack.is_empty());
+    }
+
+    #[test]
+    fn run() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+
+        let program = vec![
+            Instruction::LoadValue(1),      // LOAD_VAL 1
+            Instruction::WriteVariable(0),  // WRITE_VAR 'x'
+            Instruction::Ignore,            // LABEL LOOP
+            Instruction::ReadVariable(0),   // READ_VAR 'x'
+            Instruction::CallFunction(11),  // CALL TEST
+            Instruction::Add,               // ADD
+            Instruction::WriteVariable(0),  // WRITE_VAR 'x'
+            Instruction::ReadVariable(0),   // READ_VAR 'x'
+            Instruction::LoadValue(10),     // LOAD_VAL 10
+            Instruction::JumpIfSmaller(2),  // JUMP_IF_SM LOOP
+            Instruction::ReadVariable(0),   // READ_VAR 'x'
+            Instruction::Jump(17),          // FUNC TEST
+            Instruction::LoadValue(5),      // LOAD_VAL 5
+            Instruction::WriteVariable(0),  // WRITE_VAR 'x'
+            Instruction::ReadVariable(0),   // READ_VAR 'x'
+            Instruction::LoadValue(5),      // LOAD_VAL 5
+            Instruction::Divide,            // DIVIDE
+            Instruction::ReturnValue,       // RETURN_VAL
+        ];
+
+        vm.run(program);
+
+        let actual_frame = vm.call_stack.peek_mut().unwrap();
+
+        assert_eq!(actual_frame.pop_value().unwrap(), 10);
+    }
+
+    #[test]
+    fn push_value() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+
+        vm.push_value(10);
+
+        let mut expected_call_stack = Stack::new();
+        let mut expected_frame = Frame::new(0);
+        expected_frame.get_operand_stack_mut().push(10);
+        expected_call_stack.push(expected_frame);
+
+        assert_eq!(vm.call_stack, expected_call_stack);
+    }
+
+    #[test]
+    fn pop_value() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+
+        vm.push_value(10);
+        let val = vm.pop_value();
+
+        assert_eq!(val, 10);
+    }
+
+    #[test]
+    fn peek_value() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+
+        vm.push_value(10);
+        let val = vm.peek_value();
+
+        assert_eq!(val, &10);
+    }
+
+    #[test]
+    fn write_variable() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+
+        vm.push_value(10);
+        vm.write_variable(0);
+
+        let actual_frame = vm.call_stack.peek().unwrap();
+
+        assert_eq!(actual_frame.get_local(0).unwrap(), &10);
+    }
+
+    #[test]
+    fn read_variable() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+
+        vm.push_value(10);
+        vm.write_variable(0);
+        vm.read_variable(0);
+
+        let actual_frame = vm.call_stack.peek_mut().unwrap();
+
+        assert_eq!(actual_frame.pop_value().unwrap(), 10);
+    }
+
+    #[test]
+    fn add() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+
+        vm.push_value(5);
+        vm.push_value(10);
+        vm.add();
+
+        assert_eq!(vm.pop_value(), 15);
+    }
+
+    #[test]
+    fn sub() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+
+        vm.push_value(10);
+        vm.push_value(3);
+        vm.sub();
+
+        assert_eq!(vm.pop_value(), 7);
+    }
+
+    #[test]
+    fn multiply() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+
+        vm.push_value(5);
+        vm.push_value(10);
+        vm.multiply();
+
+        assert_eq!(vm.pop_value(), 50);
+    }
+
+    #[test]
+    fn divide() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+
+        vm.push_value(10);
+        vm.push_value(5);
+        vm.divide();
+
+        assert_eq!(vm.pop_value(), 2);
+    }
+
+    #[test]
+    fn jump() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+
+        vm.jump(10);
+
+        assert_eq!(vm.ip, 10);
+    }
+
+    #[test]
+    fn jie() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+
+        vm.push_value(5);
+        vm.push_value(5);
+        vm.jie(10);
+
+        assert_eq!(vm.ip, 10);
+    }
+
+    #[test]
+    fn jine() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+
+        vm.push_value(10);
+        vm.push_value(5);
+        vm.jine(10);
+
+        assert_eq!(vm.ip, 10);
+    }
+
+    #[test]
+    fn jilg() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+
+        vm.push_value(10);
+        vm.push_value(5);
+        vm.jilg(10);
+
+        assert_eq!(vm.ip, 10);
+    }
+
+    #[test]
+    fn jils() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+
+        vm.push_value(5);
+        vm.push_value(10);
+        vm.jils(10);
+
+        assert_eq!(vm.ip, 10);
+    }
+
+    #[test]
+    fn jilge() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+
+        vm.push_value(10);
+        vm.push_value(5);
+        vm.jilge(5);
+
+        assert_eq!(vm.ip, 5);
+
+        vm.push_value(5);
+        vm.push_value(5);
+        vm.jilge(10);
+
+        assert_eq!(vm.ip, 10);
+    }
+
+    #[test]
+    fn jilse() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+
+        vm.push_value(5);
+        vm.push_value(10);
+        vm.jilse(5);
+
+        assert_eq!(vm.ip, 5);
+
+        vm.push_value(5);
+        vm.push_value(5);
+        vm.jilse(10);
+
+        assert_eq!(vm.ip, 10);
+    }
+
+    #[test]
+    fn call_function() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(5);
+        vm.call_stack.push(frame);
+        vm.ip = 5;
+
+        vm.call_function(10);
+
+        let actual_frame = vm.call_stack.peek().unwrap();
+
+        assert_eq!(actual_frame.ip, 5);
+        assert_eq!(vm.ip, 10);
+    }
+
+    #[test]
+    fn return_void() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+        let frame: Frame<isize> = Frame::new(5);
+        vm.call_stack.push(frame);
+
+        vm.return_void();
+
+        assert_eq!(vm.ip, 5);
+    }
+
+    #[test]
+    fn return_value() {
+        let mut vm = VirtualMachine::new();
+        let frame: Frame<isize> = Frame::new(0);
+        vm.call_stack.push(frame);
+        let frame: Frame<isize> = Frame::new(5);
+        vm.call_stack.push(frame);
+
+        vm.push_value(10);
+        vm.return_value();
+
+        let actual_frame = vm.call_stack.peek_mut().unwrap();
+
+        assert_eq!(actual_frame.pop_value().unwrap(), 10);
+        assert_eq!(vm.ip, 5);
     }
 }

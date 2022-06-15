@@ -1,6 +1,6 @@
 use crate::errors::RuntimeError;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Stack<T>(Vec<T>);
 
 impl<T> Stack<T> {
