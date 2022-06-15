@@ -95,7 +95,7 @@ mod test {
     }
 
     #[test]
-    #[should_panic(expected = "Label duplicate found during parsing.")]
+    #[should_panic(expected = "Label 'LOOP1' duplicate found during parsing.")]
     fn from_iter_should_panic_while_parsing_duplicated_labels() {
         let labels_vec: Vec<&str> = vec!["LOOP1", "LOOP1"];
 

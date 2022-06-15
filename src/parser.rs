@@ -246,7 +246,7 @@ mod test {
     }
 
     #[test]
-    #[should_panic(expected = "Label duplicate found during parsing.")]
+    #[should_panic(expected = "Label 'LOOP' duplicate found during parsing.")]
     fn parse_labels_should_panic_for_duplicated_labels() {
         let bytecode = vec![
             vec!["LABEL", "LOOP"],
